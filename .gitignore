@@ -1,0 +1,18 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Node (only if you ever add tooling — there's no build step today)
+node_modules/
+npm-debug.log*
+
+# Do NOT ignore these — they must ship for the site to work:
+#   vendor/   (PapaParse + Chart.js, loaded at runtime)
+#   .nojekyll (tells GitHub Pages to serve files as-is)

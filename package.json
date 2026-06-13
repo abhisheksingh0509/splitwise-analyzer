@@ -1,0 +1,11 @@
+{
+  "name": "splitwise-analyser",
+  "version": "1.0.0",
+  "description": "Private, in-browser spend analysis for Splitwise CSV exports.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node test/run.mjs trip.csv && node test/run.mjs sample.csv && node test/merge.mjs",
+    "serve": "python3 -m http.server 8000"
+  }
+}

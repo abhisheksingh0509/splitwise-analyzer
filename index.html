@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Splitwise Analyser — private, in-browser spend analysis</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>📊 Splitwise Analyser</h1>
+    <p class="tagline">Drop your Splitwise CSV export and get an instant spend analysis.</p>
+    <p class="privacy">🔒 Your file never leaves this browser. Nothing is uploaded, stored, or tracked — refresh and it's gone.</p>
+  </header>
+
+  <main>
+    <!-- Upload -->
+    <section id="dropzone" class="dropzone" aria-label="Upload area">
+      <input type="file" id="fileInput" accept=".csv,text/csv" multiple hidden />
+      <div class="dropzone-inner">
+        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 16V4" /><path d="M7 9l5-5 5 5" /><path d="M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" />
+        </svg>
+        <p class="big">Drop your Splitwise CSV here</p>
+        <button type="button" id="browseBtn" class="secondary">Choose file(s)</button>
+        <p class="muted">In Splitwise: group → ⚙️ → <em>Export as spreadsheet</em>. You can add several exports — they'll be combined if they share the same people.</p>
+      </div>
+    </section>
+
+    <p class="demo-hint">No export handy? <button type="button" id="demoBtn" class="link">Try with demo data</button></p>
+
+    <div id="errorBox" class="errorbox" hidden></div>
+
+    <!-- Controls (hidden until a file is parsed) -->
+    <section id="controls" class="controls" hidden>
+      <label>Currency
+        <select id="currencySel"></select>
+      </label>
+      <label>Personal view for
+        <select id="personSel"></select>
+      </label>
+      <button type="button" id="addBtn" class="link">+ add another file</button>
+      <button type="button" id="resetBtn" class="link">↺ start over</button>
+    </section>
+
+    <p id="sources" class="sources" hidden></p>
+
+    <div id="warnings" class="warnings" hidden></div>
+
+    <!-- Results -->
+    <section id="results" hidden>
+      <!-- KPI cards -->
+      <div id="kpis" class="kpi-grid"></div>
+
+      <!-- GENERAL: each person's share -->
+      <div class="card">
+        <h2>Each person's share of the trip</h2>
+        <p class="muted">What each person's portion of the bills actually came to — their share, what they paid out of pocket, and the difference.</p>
+        <div class="chart-wrap"><canvas id="shareChart"></canvas></div>
+        <div id="shareTable" class="table-wrap"></div>
+        <p id="shareNote" class="muted" hidden></p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Spend by category</h2>
+          <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+          <p id="catNote" class="muted" hidden></p>
+        </div>
+        <div class="card">
+          <h2>Spend over time</h2>
+          <div class="chart-wrap"><canvas id="monthChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- PERSONALISED -->
+      <div class="card personal">
+        <h2>Your trip, <span id="personName"></span></h2>
+        <div id="personStats" class="kpi-grid"></div>
+        <div class="grid-2">
+          <div>
+            <h3>Your share by category</h3>
+            <div class="chart-wrap"><canvas id="myCatChart"></canvas></div>
+          </div>
+          <div>
+            <h3>You vs the group</h3>
+            <div id="personCompare"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>All processing happens locally in your browser. <a href="https://github.com" target="_blank" rel="noopener">Source</a> · No data leaves this page.</p>
+  </footer>
+
+  <!-- Vendored libs (no third-party network calls) -->
+  <script src="vendor/papaparse.min.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
