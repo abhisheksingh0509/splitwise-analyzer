@@ -1,5 +1,5 @@
 {
-  "name": "splitwise-analyser",
+  "name": "splitwise-analyzer",
   "version": "1.0.0",
   "description": "Private, in-browser spend analysis for Splitwise CSV exports.",
   "type": "module",

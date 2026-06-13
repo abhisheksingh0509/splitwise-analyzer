@@ -104,7 +104,7 @@ Then `balance = paid âˆ’ share` (matches the net). Only **multi-payer** rows (â‰
 
 ### File layout (proposed)
 ```
-spliwise_analyser/
+splitwise-analyzer/
   index.html          # entry, file picker, layout
   css/styles.css
   js/
