@@ -7,7 +7,7 @@
 // This file does NO file/network I/O and touches NO DOM, so it is identical in
 // the browser and under Node — which is what makes it testable.
 
-import { categorize } from './categorize.js';
+import { categorize as defaultCategorize } from './categorize.js';
 
 const SUMMARY_DESC = 'total balance';
 const PAYMENT_CATEGORY = 'payment';
@@ -40,7 +40,8 @@ function indexColumns(header) {
   };
 }
 
-export function normalize(rawRows) {
+export function normalize(rawRows, options = {}) {
+  const categorize = options.categorize || defaultCategorize;
   const warnings = [];
 
   if (!Array.isArray(rawRows) || rawRows.length === 0) {

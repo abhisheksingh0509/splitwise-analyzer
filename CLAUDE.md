@@ -68,7 +68,11 @@ Deliberately not bloated. KPIs trimmed to: group spend, people, date range, larg
 Users can upload several exports (multi-select, multi-drop, or **+ add another file** — accumulated across uploads). Each file is `normalize()`d (and validated) on its own, then merged. **Hard rule:** all files must have the **exact same set of people** (order-independent — rows key nets by name). A file with an extra/missing person throws a descriptive Error naming the difference; nothing merges and the previous state is preserved. Merged model: rows concatenated, currencies unioned, per-file warnings prefixed `[file]`, `totalBalanceRow` dropped (each file's balance was already validated), `sources` lists filenames.
 
 ### Category refinement (`categorize.js`)
-Splitwise's "General" bucket mixes unrelated spend. A keyword map (`CATEGORY_RULES`, ordered, first-match-wins) refines **only** `General`/blank **expense** rows into finer categories (Accommodation, Transport, Liquor, Groceries, Activities, Food & drinks, Shopping, Household). Real categories and payments are untouched. The original is kept as `categoryRaw`; unmatched rows stay `General`. `model.recategorized` counts hits and the UI shows a transparency note. Conservative by design — ambiguous descriptions (e.g. "Fifth Generation") are left as General rather than guessed.
+Splitwise's "General" bucket mixes unrelated spend. `makeCategorizer(rules)` builds an ordered, first-match-wins keyword matcher (defaults in `DEFAULT_RULES`); `normalize(rows, { categorize })` applies it to **only** `General`/blank **expense** rows. Real categories and payments are untouched. The original is kept as `categoryRaw`; unmatched rows stay `General`. `model.recategorized` counts hits and the UI shows a note. **User-editable in the UI** (⚙ Categories) — rules persist in `localStorage('categoryRules')` and apply by re-normalizing the stored raw rows (`buildModel`), so entries keep `{ name, raw }` not a pre-built model.
+
+### Drill-down & export (`app.js`)
+- **Drill-down**: the category doughnut's `onSlice` opens a modal listing that category's transactions (date / description / paid-by / cost) for the current currency.
+- **Export**: PNG via vendored `html2canvas` snapshot of `#results`; PDF via `window.print()` + a print stylesheet (hides chrome, shows a `.print-title`, flattens shadows).
 
 Removed from the page: who-bankrolled chart, net-balances & settle-up section, top-expenses table, settlements table (kept lean per user request; can be re-added).
 

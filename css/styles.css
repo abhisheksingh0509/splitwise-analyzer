@@ -170,8 +170,9 @@ button { font: inherit; cursor: pointer; }
   border-radius: var(--radius-sm); background: var(--select-bg); min-width: 160px; transition: border-color .15s, box-shadow .15s;
 }
 .controls select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(20, 184, 166, .15); }
-.controls .link { margin-left: auto; align-self: center; }
-.controls #resetBtn { margin-left: 0; }
+.controls-actions { margin-left: auto; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+.controls-actions .link { margin-left: 0; align-self: center; }
+@media (max-width: 620px) { .controls-actions { margin-left: 0; width: 100%; } }
 
 /* ── Error / sources / warnings ─────────────────────────────────────── */
 .errorbox { margin-top: 16px; background: var(--error-bg); color: var(--error-ink); border: 1px solid var(--error-line); border-radius: var(--radius); padding: 14px 18px; font-size: 14px; }
@@ -248,6 +249,55 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 #personCompare { padding-top: 24px; line-height: 1.85; color: var(--ink-soft); }
 #personCompare p { margin: 0 0 10px; }
 #personCompare strong { color: var(--ink); }
+
+/* ── Modal (drill-down + category editor) ───────────────────────────── */
+.print-title { display: none; }
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal[hidden] { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(8, 12, 18, .5); backdrop-filter: blur(2px); }
+.modal-box {
+  position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow-lg); width: min(660px, 100%); max-height: 86vh; display: flex; flex-direction: column;
+  animation: fadeUp .22s ease both;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+.modal-head h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.modal-x { border: none; background: none; font-size: 26px; line-height: 1; color: var(--muted); padding: 0 6px; border-radius: 6px; }
+.modal-x:hover { color: var(--ink); }
+.modal-body { padding: 18px 22px; overflow: auto; }
+.modal-hint { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+.modal-total { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.modal-total strong { color: var(--ink); font-size: 15px; }
+
+/* Category rule editor */
+.rule-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+.rule-row input { font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--select-bg); color: var(--ink); }
+.rule-row input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(20, 184, 166, .15); }
+.rule-cat { width: 150px; flex: 0 0 auto; font-weight: 600; }
+.rule-kw { flex: 1 1 auto; min-width: 0; }
+.rule-del { border: none; background: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.rule-del:hover { color: var(--neg); }
+.modal-foot { display: flex; gap: 14px; align-items: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.modal-foot .spacer { margin-left: auto; }
+
+/* ── PNG export: flatten so html2canvas doesn't darken the snapshot ─── */
+body.exporting { background: var(--bg) !important; }
+body.exporting .card, body.exporting .kpi { box-shadow: none !important; }
+/* The clone html2canvas renders re-runs the entrance animation from opacity:0,
+   which would snapshot a blank frame — pin it to the final state. */
+body.exporting #results, body.exporting #results * { animation: none !important; opacity: 1 !important; }
+
+/* ── Print (Save as PDF) ────────────────────────────────────────────── */
+@media print {
+  .site-header .brand, .tagline, .privacy, .theme-toggle, .dropzone, .demo-hint,
+  #errorBox, .controls, #sources, .warnings, .site-footer, .modal, .seg { display: none !important; }
+  body { background: #fff !important; color: #111; }
+  main { max-width: none; padding: 0; }
+  .print-title { display: block; font-size: 20px; font-weight: 800; margin: 0 0 18px; color: #111; }
+  .card, .kpi { box-shadow: none !important; border: 1px solid #dcdfe5 !important; break-inside: avoid; }
+  .grid-2 { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 
 /* ── Footer ─────────────────────────────────────────────────────────── */
 .site-footer { text-align: center; color: var(--muted); font-size: 13px; padding: 28px 20px 40px; }

@@ -4,12 +4,25 @@
 import { normalize, mergeModels } from './parse.js';
 import { analyzeCurrency, spendOverTime, suggestTimeUnit } from './analyze.js';
 import { doughnut, bars, destroyAll } from './charts.js';
+import { makeCategorizer, DEFAULT_RULES } from './categorize.js';
 import { SAMPLE_CSV } from './sample.js';
 
 const $ = (id) => document.getElementById(id);
 let model = null;        // current merged model
-let entries = [];        // [{ name, model }] accumulated across uploads
+let entries = [];        // [{ name, raw }] accumulated across uploads (raw = parsed rows)
 let timeUnit = 'month';  // day | month | year for the "Spend over time" chart
+
+// Category rules are user-editable (persisted) and re-applied by re-normalizing.
+let rules = loadRules();
+let categorizer = makeCategorizer(rules);
+
+function loadRules() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('categoryRules'));
+    if (Array.isArray(saved) && saved.length) return saved;
+  } catch (e) { /* fall through to defaults */ }
+  return DEFAULT_RULES;
+}
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function fmtBucket(bucket, unit) {
@@ -44,11 +57,20 @@ const readText = (file) => new Promise((resolve, reject) => {
   r.readAsText(file);
 });
 
-function parseToEntry(name, text) {
+function entryFromText(name, text) {
   const parsed = window.Papa.parse(text.trim(), { skipEmptyLines: 'greedy' });
-  const m = normalize(parsed.data);
-  if (!m.people.length) throw new Error(`"${name}" has no people columns — is it a Splitwise CSV export?`);
-  return { name, model: m };
+  return { name, raw: parsed.data };
+}
+
+// Normalize every stored file with the current categorizer and merge them.
+// Throws on no-people / mismatched-people so callers can show the message.
+function buildModel(candidateEntries) {
+  const models = candidateEntries.map((e) => {
+    const m = normalize(e.raw, { categorize: categorizer });
+    if (!m.people.length) throw new Error(`"${e.name}" has no people columns — is it a Splitwise CSV export?`);
+    return { name: e.name, model: m };
+  });
+  return mergeModels(models);
 }
 
 // Add one or more files to whatever is already loaded; merge; render.
@@ -58,11 +80,10 @@ async function addFiles(fileList) {
   if (!files.length) return;
   try {
     const fresh = [];
-    for (const f of files) fresh.push(parseToEntry(f.name, await readText(f)));
+    for (const f of files) fresh.push(entryFromText(f.name, await readText(f)));
     const combined = [...entries, ...fresh];
-    const merged = mergeModels(combined); // throws if people don't match
+    model = buildModel(combined); // throws if people don't match
     entries = combined;
-    model = merged;
     showError(null);
     showAnalysis();
   } catch (err) {
@@ -72,8 +93,8 @@ async function addFiles(fileList) {
 
 // Load the bundled demo (replaces any current state).
 function loadDemo() {
-  entries = [parseToEntry('demo.csv', SAMPLE_CSV)];
-  model = mergeModels(entries);
+  entries = [entryFromText('demo.csv', SAMPLE_CSV)];
+  model = buildModel(entries);
   showError(null);
   showAnalysis();
 }
@@ -138,12 +159,14 @@ function render() {
     note.textContent = `~ ${a.share.approxRows} expense(s) had multiple payers, which a Splitwise export can't split exactly — those were divided equally. Everything else is exact.`;
   } else { note.hidden = true; }
 
-  doughnut('catChart', a.byCategory.map((c) => c.category), a.byCategory.map((c) => c.amount), currency);
+  doughnut('catChart', a.byCategory.map((c) => c.category), a.byCategory.map((c) => c.amount), currency,
+    { onSlice: (label) => showCategoryTransactions(label, currency) });
   const catNote = $('catNote');
-  if (model.recategorized > 0) {
-    catNote.hidden = false;
-    catNote.textContent = `${model.recategorized} "General" expense(s) auto-sorted into finer categories by description keywords.`;
-  } else { catNote.hidden = true; }
+  const reNote = model.recategorized > 0
+    ? `${model.recategorized} "General" expense(s) auto-sorted into finer categories. `
+    : '';
+  catNote.hidden = false;
+  catNote.textContent = `${reNote}Tip: click a slice to see its transactions.`;
   const series = spendOverTime(model, currency, timeUnit);
   bars('monthChart', series.map((s) => fmtBucket(s.bucket, timeUnit)), series.map((s) => s.amount), currency, { color: '#6366f1' });
   for (const b of $('timeUnit').querySelectorAll('button')) b.classList.toggle('active', b.dataset.unit === timeUnit);
@@ -216,6 +239,100 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// ── Modal ─────────────────────────────────────────────────────────────────
+function openModal(title, bodyHtml) {
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = bodyHtml;
+  $('modal').hidden = false;
+}
+function closeModal() { $('modal').hidden = true; $('modalBody').innerHTML = ''; }
+
+// ── Category drill-down (click a slice) ─────────────────────────────────────
+function showCategoryTransactions(category, currency) {
+  const rows = model.rows
+    .filter((r) => r.kind === 'expense' && r.currency === currency && r.category === category)
+    .sort((a, b) => b.cost - a.cost);
+  const total = rows.reduce((s, r) => s + r.cost, 0);
+  const paidBy = (r) => model.people.filter((p) => r.net[p] > 0.005).join(', ') || '—';
+  const body =
+    `<p class="modal-total">${rows.length} transaction(s) · total <strong>${fmt(currency, total)}</strong></p>` +
+    '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Paid by</th><th class="num">Cost</th></tr></thead><tbody>' +
+    rows.map((r) => `<tr><td>${r.dateStr}</td><td>${escapeHtml(r.description) || '<span class="muted">(no description)</span>'}</td><td>${escapeHtml(paidBy(r))}</td><td class="num">${fmt(currency, r.cost)}</td></tr>`).join('') +
+    '</tbody></table></div>';
+  openModal(`${category} — transactions`, body);
+}
+
+// ── Custom category rule editor ─────────────────────────────────────────────
+const ruleRowHtml = (cat, kw) =>
+  `<div class="rule-row">
+     <input class="rule-cat" type="text" value="${escapeHtml(cat)}" placeholder="Category" />
+     <input class="rule-kw" type="text" value="${escapeHtml(kw)}" placeholder="keywords, comma separated" />
+     <button type="button" class="rule-del" title="Remove" aria-label="Remove rule">&times;</button>
+   </div>`;
+
+function openCategoryEditor() {
+  const body =
+    '<p class="modal-hint">These rules rename <strong>General</strong> / blank expenses by matching keywords in the description (first match wins). Real Splitwise categories are never changed. Saved on this device only.</p>' +
+    `<div id="ruleList">${rules.map((r) => ruleRowHtml(r.category, r.keywords.join(', '))).join('')}</div>` +
+    '<button type="button" id="addRule" class="link">+ add rule</button>' +
+    '<div class="modal-foot">' +
+      '<button type="button" id="resetRules" class="link">Reset to defaults</button>' +
+      '<span class="spacer"></span>' +
+      '<button type="button" id="cancelRules" class="link">Cancel</button>' +
+      '<button type="button" id="applyRules" class="secondary">Apply</button>' +
+    '</div>';
+  openModal('Custom category rules', body);
+
+  $('addRule').addEventListener('click', () => $('ruleList').insertAdjacentHTML('beforeend', ruleRowHtml('', '')));
+  $('ruleList').addEventListener('click', (e) => {
+    if (e.target.classList.contains('rule-del')) e.target.closest('.rule-row').remove();
+  });
+  $('resetRules').addEventListener('click', () => {
+    $('ruleList').innerHTML = DEFAULT_RULES.map((r) => ruleRowHtml(r.category, r.keywords.join(', '))).join('');
+  });
+  $('cancelRules').addEventListener('click', closeModal);
+  $('applyRules').addEventListener('click', () => {
+    const collected = [];
+    for (const row of $('ruleList').querySelectorAll('.rule-row')) {
+      const cat = row.querySelector('.rule-cat').value.trim();
+      const kw = row.querySelector('.rule-kw').value.split(',').map((s) => s.trim()).filter(Boolean);
+      if (cat && kw.length) collected.push({ category: cat, keywords: kw });
+    }
+    rules = collected;
+    try { localStorage.setItem('categoryRules', JSON.stringify(rules)); } catch (e) { /* fine */ }
+    categorizer = makeCategorizer(rules);
+    if (entries.length) {
+      try { model = buildModel(entries); render(); } catch (e) { showError(e.message); }
+    }
+    closeModal();
+  });
+}
+
+// ── Export ──────────────────────────────────────────────────────────────────
+async function exportPNG() {
+  if (!window.html2canvas || !model) return;
+  const btn = $('pngBtn'); const original = btn.textContent; btn.textContent = '…rendering';
+  // Flatten shadows + drop the page gradient so html2canvas doesn't render a
+  // grey wash that makes the image look dimmer than the live page.
+  document.body.classList.add('exporting');
+  const bg = getComputedStyle(document.body).backgroundColor;
+  try {
+    const canvas = await window.html2canvas($('results'), {
+      backgroundColor: bg, scale: 2, logging: false, useCORS: true,
+      windowWidth: document.documentElement.clientWidth,
+    });
+    const link = document.createElement('a');
+    link.download = 'splitwise-analysis.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (e) {
+    showError('Could not generate PNG: ' + e.message);
+  } finally {
+    document.body.classList.remove('exporting');
+    btn.textContent = original;
+  }
+}
+
 function reset() {
   destroyAll();
   model = null;
@@ -241,6 +358,11 @@ $('resetBtn').addEventListener('click', reset);
 $('currencySel').addEventListener('change', render);
 $('personSel').addEventListener('change', render);
 $('themeToggle').addEventListener('click', toggleTheme);
+$('catBtn').addEventListener('click', openCategoryEditor);
+$('pngBtn').addEventListener('click', exportPNG);
+$('pdfBtn').addEventListener('click', () => window.print());
+$('modal').addEventListener('click', (e) => { if (e.target.hasAttribute('data-close')) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('modal').hidden) closeModal(); });
 $('timeUnit').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-unit]');
   if (!btn || btn.dataset.unit === timeUnit) return;
@@ -260,3 +382,6 @@ document.addEventListener('drop', (e) => {
   if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
 });
 document.addEventListener('dragover', (e) => { if (!$('results').hidden) e.preventDefault(); });
+
+// Deep link: opening the app with #demo loads the sample data straight away.
+if (location.hash === '#demo') loadDemo();

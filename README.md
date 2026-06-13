@@ -19,6 +19,9 @@ The layout is deliberately lean: a few headline numbers, **one general view**, t
 - **Spend by category** and **spend over time** — the time chart toggles **Day / Month / Year** and defaults to a sensible granularity for the date span.
 - **Your trip, <name>** *(personalised)* — your share, its % of group spend, what you paid, your share by category, and how you compare to the group average.
 - **Light / dark theme** — toggle in the header; follows your OS preference by default.
+- **Drill-down** — click any slice in *Spend by category* to see that category's transactions.
+- **Custom categories** — *⚙ Categories* lets you edit the keyword rules (which rename `General`/blank expenses) right in the UI; saved on your device.
+- **Export** — *⤓ PNG* saves the analysis as an image; *⤓ PDF* opens the print dialog (choose "Save as PDF").
 
 ### How "share" is computed
 A Splitwise export stores each person's **net** per expense (`paid − share`). For a standard **single-payer** expense, the share is *exactly* recoverable: everyone who didn't pay has `share = −net`, and the payer's share is the remainder of the bill. The app does this — so per-person share is exact, not an equal-split guess. The only exception is an expense with **multiple payers** (which the export can't split apart); those rows are divided equally and counted in a small note.
@@ -60,6 +63,6 @@ js/analyze.js     KPIs, breakdowns, balances, settle-up (pure, no deps)
 js/charts.js      Chart.js render helpers
 js/app.js         glue: file → parse → analyze → render (only DOM/file code)
 js/sample.js      embedded demo dataset
-vendor/           PapaParse + Chart.js (vendored, no CDN at runtime)
+vendor/           PapaParse + Chart.js + html2canvas (vendored, no CDN at runtime)
 test/             Node test harness + fixtures
 ```

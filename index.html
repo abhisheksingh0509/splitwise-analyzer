@@ -68,8 +68,13 @@
       <label>Personal view for
         <select id="personSel"></select>
       </label>
-      <button type="button" id="addBtn" class="link">+ add another file</button>
-      <button type="button" id="resetBtn" class="link">↺ start over</button>
+      <div class="controls-actions">
+        <button type="button" id="catBtn" class="link">⚙ Categories</button>
+        <button type="button" id="pngBtn" class="link">⤓ PNG</button>
+        <button type="button" id="pdfBtn" class="link">⤓ PDF</button>
+        <button type="button" id="addBtn" class="link">+ add file</button>
+        <button type="button" id="resetBtn" class="link">↺ start over</button>
+      </div>
     </section>
 
     <p id="sources" class="sources" hidden></p>
@@ -78,6 +83,7 @@
 
     <!-- Results -->
     <section id="results" hidden>
+      <div class="print-title">Splitwise Analyzer — spend analysis</div>
       <!-- KPI cards -->
       <div id="kpis" class="kpi-grid"></div>
 
@@ -131,9 +137,22 @@
     <p>All processing happens locally in your browser. <a href="https://github.com/abhisheksingh0509/splitwise-analyzer" target="_blank" rel="noopener">Source</a> · No data leaves this page.</p>
   </footer>
 
+  <!-- Reusable modal (drill-down + category editor) -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle"></h3>
+        <button type="button" class="modal-x" data-close aria-label="Close">&times;</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
   <!-- Vendored libs (no third-party network calls) -->
   <script src="vendor/papaparse.min.js"></script>
   <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

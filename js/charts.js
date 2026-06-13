@@ -23,12 +23,14 @@ export function destroyAll() {
 
 const money = (cur) => (v) => `${cur} ${Number(v).toLocaleString()}`;
 
-export function doughnut(canvasId, labels, values, currency) {
+export function doughnut(canvasId, labels, values, currency, { onSlice = null } = {}) {
   draw(canvasId, {
     type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderWidth: 1, borderColor: '#fff' }] },
+    data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderWidth: 2, borderColor: 'transparent' }] },
     options: {
       responsive: true, maintainAspectRatio: false,
+      onClick: onSlice ? (evt, els, chart) => { if (els.length) onSlice(chart.data.labels[els[0].index]); } : undefined,
+      onHover: onSlice ? (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; } : undefined,
       plugins: {
         legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
         tooltip: { callbacks: { label: (c) => `${c.label}: ${money(currency)(c.parsed)}` } },
