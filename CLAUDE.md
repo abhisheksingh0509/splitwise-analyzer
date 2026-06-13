@@ -80,7 +80,7 @@ Then `balance = paid − share` (matches the net). Only **multi-payer** rows (�
 
 ### Breakdowns (charts)
 - **Spend by category** — bar/pie, sortable, with % of total.
-- **Spend over time** — monthly (and weekly) line/bar trend.
+- **Spend over time** — Day / Month / Year toggle (`spendOverTime` + `suggestTimeUnit` pick a default from the span).
 - **Spend by person** — who paid the most, who consumed the most.
 - **Category × month** heatmap (optional, nice-to-have).
 - **Top N transactions** — biggest single expenses.

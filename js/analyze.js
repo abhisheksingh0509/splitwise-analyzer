@@ -45,18 +45,36 @@ export function spendByCategory(model, currency) {
     .sort((a, b) => b.amount - a.amount);
 }
 
-// ── Spend over time (monthly, chronological) ────────────────────────────────
-export function spendByMonth(model, currency) {
+// ── Spend over time (chronological), bucketed by day / month / year ──────────
+export function spendOverTime(model, currency, unit = 'month') {
   const { expenses } = forCurrency(model, currency);
+  const len = unit === 'day' ? 10 : unit === 'year' ? 4 : 7; // YYYY-MM-DD slice length
   const map = {};
   for (const r of expenses) {
     if (!r.date || isNaN(r.date)) continue;
-    const key = r.date.toISOString().slice(0, 7);
+    const key = r.date.toISOString().slice(0, len);
     map[key] = (map[key] || 0) + r.cost;
   }
   return Object.entries(map)
-    .map(([month, amount]) => ({ month, amount: round(amount) }))
-    .sort((a, b) => a.month.localeCompare(b.month));
+    .map(([bucket, amount]) => ({ bucket, amount: round(amount) }))
+    .sort((a, b) => a.bucket.localeCompare(b.bucket));
+}
+
+// Backwards-compatible monthly helper (used by tests).
+export function spendByMonth(model, currency) {
+  return spendOverTime(model, currency, 'month').map(({ bucket, amount }) => ({ month: bucket, amount }));
+}
+
+// Suggest a default granularity from the span of the data.
+export function suggestTimeUnit(model) {
+  const dates = model.rows
+    .filter((r) => r.kind === 'expense' && r.date && !isNaN(r.date))
+    .map((r) => r.date.getTime());
+  if (dates.length < 2) return 'month';
+  const days = (Math.max(...dates) - Math.min(...dates)) / 86400000;
+  if (days <= 45) return 'day';
+  if (days <= 1100) return 'month'; // up to ~3 years
+  return 'year';
 }
 
 // ── Per-person share / paid / balance ───────────────────────────────────────

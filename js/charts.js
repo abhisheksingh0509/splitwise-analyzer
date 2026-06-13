@@ -3,8 +3,8 @@
 // or person change) never leaks Chart instances.
 
 const PALETTE = [
-  '#1cc29f', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#14b8a6', '#ec4899', '#84cc16', '#f97316', '#06b6d4',
+  '#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#0ea5e9',
+  '#a855f7', '#ec4899', '#84cc16', '#f97316', '#0d9488',
 ];
 
 const registry = new Map(); // canvasId -> Chart

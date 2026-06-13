@@ -2,13 +2,39 @@
 // The only place that touches the DOM and the file input. No user data is ever
 // sent over the network (PapaParse & Chart.js are vendored locally).
 import { normalize, mergeModels } from './parse.js';
-import { analyzeCurrency } from './analyze.js';
+import { analyzeCurrency, spendOverTime, suggestTimeUnit } from './analyze.js';
 import { doughnut, bars, destroyAll } from './charts.js';
 import { SAMPLE_CSV } from './sample.js';
 
 const $ = (id) => document.getElementById(id);
 let model = null;        // current merged model
 let entries = [];        // [{ name, model }] accumulated across uploads
+let timeUnit = 'month';  // day | month | year for the "Spend over time" chart
+
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function fmtBucket(bucket, unit) {
+  if (unit === 'year') return bucket;
+  const [y, m, d] = bucket.split('-');
+  if (unit === 'month') return `${MON[+m - 1]} ${y}`;
+  return `${+d} ${MON[+m - 1]}`; // day
+}
+
+// ── Theme ─────────────────────────────────────────────────────────────────
+const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+
+function applyChartTheme() {
+  if (!window.Chart) return;
+  window.Chart.defaults.color = isDark() ? '#bcc5d2' : '#5b6573';
+  window.Chart.defaults.borderColor = isDark() ? 'rgba(255,255,255,.08)' : 'rgba(20,26,38,.08)';
+}
+
+function toggleTheme() {
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('theme', next); } catch (e) { /* storage blocked — fine */ }
+  applyChartTheme();
+  if (model) render(); // redraw charts so legends/axes match the theme
+}
 
 // ── Entry points ────────────────────────────────────────────────────────────
 const readText = (file) => new Promise((resolve, reject) => {
@@ -53,6 +79,7 @@ function loadDemo() {
 }
 
 function showAnalysis() {
+  timeUnit = suggestTimeUnit(model); // sensible default from the data's span
   buildControls();
   render();
   $('controls').hidden = false;
@@ -117,7 +144,9 @@ function render() {
     catNote.hidden = false;
     catNote.textContent = `${model.recategorized} "General" expense(s) auto-sorted into finer categories by description keywords.`;
   } else { catNote.hidden = true; }
-  bars('monthChart', a.byMonth.map((m) => m.month), a.byMonth.map((m) => m.amount), currency, { color: '#3b82f6' });
+  const series = spendOverTime(model, currency, timeUnit);
+  bars('monthChart', series.map((s) => fmtBucket(s.bucket, timeUnit)), series.map((s) => s.amount), currency, { color: '#6366f1' });
+  for (const b of $('timeUnit').querySelectorAll('button')) b.classList.toggle('active', b.dataset.unit === timeUnit);
 
   // PERSONALISED
   renderPersonal(a, currency, person);
@@ -211,6 +240,14 @@ $('demoBtn').addEventListener('click', loadDemo);
 $('resetBtn').addEventListener('click', reset);
 $('currencySel').addEventListener('change', render);
 $('personSel').addEventListener('change', render);
+$('themeToggle').addEventListener('click', toggleTheme);
+$('timeUnit').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-unit]');
+  if (!btn || btn.dataset.unit === timeUnit) return;
+  timeUnit = btn.dataset.unit;
+  if (model) render();
+});
+applyChartTheme(); // sync Chart.js defaults with the theme set before paint
 
 const dz = $('dropzone');
 ['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('dragover'); }));

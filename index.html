@@ -3,14 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Splitwise Analyser — private, in-browser spend analysis</title>
+  <meta name="color-scheme" content="light dark" />
+  <title>Splitwise Analyzer — private, in-browser spend analysis</title>
   <link rel="stylesheet" href="css/styles.css" />
+  <script>
+    // Set theme before paint to avoid a flash. Only the theme preference is
+    // stored — never any file data.
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+  </script>
 </head>
 <body>
   <header class="site-header">
-    <h1>📊 Splitwise Analyser</h1>
-    <p class="tagline">Drop your Splitwise CSV export and get an instant spend analysis.</p>
-    <p class="privacy">🔒 Your file never leaves this browser. Nothing is uploaded, stored, or tracked — refresh and it's gone.</p>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle light / dark">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" />
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+      </svg>
+    </button>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18" /><path d="M7 15l3-4 3 2 4-6" />
+        </svg>
+      </span>
+      <h1>Splitwise Analyzer</h1>
+    </div>
+    <p class="tagline">Drop your Splitwise CSV export and get an instant, private spend analysis.</p>
+    <p class="privacy"><span class="dot"></span> Your file never leaves this browser — nothing is uploaded, stored, or tracked.</p>
   </header>
 
   <main>
@@ -55,7 +84,7 @@
       <!-- GENERAL: each person's share -->
       <div class="card">
         <h2>Each person's share of the trip</h2>
-        <p class="muted">What each person's portion of the bills actually came to — their share, what they paid out of pocket, and the difference.</p>
+        <p class="muted">What each person's portion of the bills actually came to — their share, its % of the total, and what they paid out of pocket.</p>
         <div class="chart-wrap"><canvas id="shareChart"></canvas></div>
         <div id="shareTable" class="table-wrap"></div>
         <p id="shareNote" class="muted" hidden></p>
@@ -68,7 +97,14 @@
           <p id="catNote" class="muted" hidden></p>
         </div>
         <div class="card">
-          <h2>Spend over time</h2>
+          <div class="card-head">
+            <h2>Spend over time</h2>
+            <div class="seg" id="timeUnit" role="group" aria-label="Time granularity">
+              <button type="button" data-unit="day">Day</button>
+              <button type="button" data-unit="month">Month</button>
+              <button type="button" data-unit="year">Year</button>
+            </div>
+          </div>
           <div class="chart-wrap"><canvas id="monthChart"></canvas></div>
         </div>
       </div>
@@ -92,7 +128,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>All processing happens locally in your browser. <a href="https://github.com" target="_blank" rel="noopener">Source</a> · No data leaves this page.</p>
+    <p>All processing happens locally in your browser. <a href="https://github.com/abhisheksingh0509/splitwise-analyzer" target="_blank" rel="noopener">Source</a> · No data leaves this page.</p>
   </footer>
 
   <!-- Vendored libs (no third-party network calls) -->

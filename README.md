@@ -15,9 +15,10 @@ A **private, in-browser** spend analyser for Splitwise CSV exports. Upload your 
 The layout is deliberately lean: a few headline numbers, **one general view**, then a **personalised** view.
 
 - **KPIs** — group spend, people, date range, largest expense.
-- **Each person's share of the trip** *(the headline)* — what each person actually consumed, what they paid out of pocket, and the difference.
-- **Spend by category** and **spend over time** (monthly).
-- **Your trip, <name>** *(personalised)* — your share, what you paid, how you net out, your share by category, and how you compare to the group average.
+- **Each person's share of the trip** *(the headline)* — what each person actually consumed, its % of the total, and what they paid out of pocket.
+- **Spend by category** and **spend over time** — the time chart toggles **Day / Month / Year** and defaults to a sensible granularity for the date span.
+- **Your trip, <name>** *(personalised)* — your share, its % of group spend, what you paid, your share by category, and how you compare to the group average.
+- **Light / dark theme** — toggle in the header; follows your OS preference by default.
 
 ### How "share" is computed
 A Splitwise export stores each person's **net** per expense (`paid − share`). For a standard **single-payer** expense, the share is *exactly* recoverable: everyone who didn't pay has `share = −net`, and the payer's share is the remainder of the bill. The app does this — so per-person share is exact, not an equal-split guess. The only exception is an expense with **multiple payers** (which the export can't split apart); those rows are divided equally and counted in a small note.
